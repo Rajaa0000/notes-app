@@ -26,20 +26,23 @@ from rest_framework_simplejwt.exceptions import TokenError
 COOKIE_CONFIG = {
     "key": "refresh_token",
     "httponly": True,
-    "secure": not settings.DEBUG,       # True in production (HTTPS only)
-    "samesite": "Lax",
-    "path": "/",                        # FIX 6: path needed for consistent delete
-    "max_age": 14 * 24 * 60 * 60,      # 14 days — matches REFRESH_TOKEN_LIFETIME
+    "secure": True,        # ← was: not settings.DEBUG
+    "samesite": "None",    # ← was: "Lax"
+    "path": "/",
+    "max_age": 14 * 24 * 60 * 60,
 }
-
-
 def set_refresh_cookie(response, refresh_token_str):
     """Set the refresh token HttpOnly cookie consistently."""
-    response.set_cookie(value=str(refresh_token_str), **COOKIE_CONFIG)
+    response.set_cookie(value=str(refresh_token_str), **COOKIE_CONFIG) #this is just giving the token the value + 
+    #addiong the cookie config 
 
 
 def delete_refresh_cookie(response):
     """
+    This is subtle but important. delete_cookie works by setting the cookie with max_age=0, 
+    which tells the browser to expire it immediately. But browsers match cookies by name + path + domain + 
+    samesite together. If any of those don't match what was set originally, the browser sees it as a
+    different cookie and ignores the deletion. That's why we pass the same path and samesite — they must match exactly.
     FIX 6: Delete the cookie with the exact same attributes it was set with.
     Mismatched samesite/secure/path causes some browsers to silently ignore
     the deletion.
